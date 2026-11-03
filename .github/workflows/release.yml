@@ -34,6 +34,9 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Unit tests (offline)
+        run: node --test test/unit/*.test.js
+
       - name: Verify ESM import
         run: node --input-type=module -e "import axlService from './main.mjs'; console.log('ESM import OK');"
 

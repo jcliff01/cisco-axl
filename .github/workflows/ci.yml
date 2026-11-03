@@ -35,5 +35,8 @@ jobs:
       - name: Verify ESM import
         run: node --input-type=module -e "import axlService from './main.mjs'; console.log('ESM import OK');"
 
+      - name: Unit tests (offline)
+        run: node --test test/unit/*.test.js
+
       - name: Verify CJS require
         run: node -e "const axlService = require('./dist/index.js'); console.log('CJS require OK');"
