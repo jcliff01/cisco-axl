@@ -856,22 +856,8 @@ class axlService {
         SOAPAction: `"CUCM:DB ver=${options.version} ${operation}"`,
       };
 
-      client.on("soapError", (err: any) => {
-        this._log.debug("SOAP error event triggered");
-        if (err.root?.Envelope?.Body?.Fault) {
-          const fault = err.root.Envelope.Body.Fault;
-          const faultString = fault.faultstring || fault.faultString || "";
-          this._log.debug(`SOAP fault detected: ${faultString}`, fault);
-
-          if (typeof faultString === "string" && (faultString.includes("Authentication failed") || faultString.includes("credentials") || faultString.includes("authorize"))) {
-            reject(new AXLAuthError());
-          } else {
-            reject(new AXLOperationError(faultString || "SOAP fault", operation, fault.faultcode, fault.detail));
-          }
-        } else {
-          reject(err);
-        }
-      });
+      // SOAP faults are handled in this request's own callback below. A client.on("soapError") listener
+      // would stay attached to the cached client forever and fire for every other request's faults too.
 
       // Check if the operation function exists
       if (!client.AXLAPIService || !client.AXLAPIService.AXLPort || typeof client.AXLAPIService.AXLPort[operation] !== "function") {
@@ -992,6 +978,11 @@ class axlService {
         (err: any, result: any, rawResponse: any) => {
           if (err) {
             this._log.debug(`Error in operation ${operation}: ${err.message || "Unknown error"}`);
+            const fault = err.root?.Envelope?.Body?.Fault;
+            if (fault) {
+              reject(faultToError(fault, operation));
+              return;
+            }
             if (err.message && (err.message.includes("Authentication failed") || err.message.includes("401 Unauthorized") || err.message.includes("403 Forbidden") || err.message.includes("credentials"))) {
               reject(new AXLAuthError());
               return;
@@ -1058,6 +1049,20 @@ class axlService {
 }
 
 // ─── Helper Functions ────────────────────────────────────────────────────────
+
+/**
+ * Maps a parsed SOAP Fault to an AXL error
+ * @param {any} fault - Envelope.Body.Fault from strong-soap
+ * @param {string} operation - AXL operation name
+ * @returns {AXLError}
+ */
+function faultToError(fault: any, operation: string): AXLError {
+  const faultString = fault.faultstring || fault.faultString || "";
+  if (typeof faultString === "string" && (faultString.includes("Authentication failed") || faultString.includes("credentials") || faultString.includes("authorize"))) {
+    return new AXLAuthError();
+  }
+  return new AXLOperationError(faultString || "SOAP fault", operation, fault.faultcode, fault.detail);
+}
 
 /**
  * Creates a nested object from WSDL elements
