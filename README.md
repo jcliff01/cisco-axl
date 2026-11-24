@@ -135,4 +135,6 @@ If you found this helpful, consider:
 
 ## License
 
-MIT
+The upstream [Cisco AXL Library & CLI](https://github.com/sieteunoseis/cisco-axl) uses the [MIT License](MIT-LICENSE.txt). This fork preserves the upstream copyright notice.
+
+Cisco AXL schema files under `schema/` contain Cisco copyright notices. Check the applicable Cisco terms for those files before repackaging or redistributing them.
